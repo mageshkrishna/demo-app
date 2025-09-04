@@ -4,7 +4,7 @@ from dataflow.dataflow import Dataflow
 
 # --- Initialize Dataflow SDK ---
 dataflow = Dataflow()
-db = dataflow.connection("conn_id")  # Replace with your real connection ID
+db = dataflow.connection("dataflow")  # Replace with your real connection ID
 
 st.title("📊 Dummy Postgres Table Creator")
 
