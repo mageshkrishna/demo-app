@@ -1,42 +1,20 @@
-import streamlit as st
-from sqlalchemy import text
-from dataflow.dataflow import Dataflow
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.python import PythonOperator
 
-# --- Initialize Dataflow SDK ---
-dataflow = Dataflow()
-db = dataflow.connection("dataflow")  # Replace with your real connection ID
+def print_hello():
+    print("Hello from the DAG!")
 
-st.title("📊 Dummy Postgres Table Creator")
+with DAG(
+    dag_id="print_message_dag",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+) as dag:
 
-if st.button("Create Table"):
-    try:
-        # Example: Create a dummy table
-        create_sql = text("""
-        CREATE TABLE IF NOT EXISTS dummy_users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100),
-            age INT
-        );
-        """)
-        db.execute(create_sql)
+    print_task = PythonOperator(
+        task_id="print_hello_task",
+        python_callable=print_hello,
+    )
 
-        # Insert sample data
-        insert_sql = text("""
-        INSERT INTO dummy_users (name, age)
-        VALUES ('Alice', 25), ('Bob', 30), ('Charlie', 22)
-        ON CONFLICT DO NOTHING;
-        """)
-        db.execute(insert_sql)
-
-        st.success("✅ Table created and sample data inserted!")
-
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
-
-if st.button("Show Data"):
-    try:
-        result = db.execute(text("SELECT * FROM dummy_users;"))
-        rows = result.fetchall()
-        st.write(rows)
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+    print_task
