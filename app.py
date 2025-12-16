@@ -39,7 +39,7 @@ st.divider()
 # -----------------------
 if st.button("Check Postgres Version"):
     try:
-        pg_hook = PostgresHook(postgres_conn_id="postgres")
+        pg_hook = PostgresHook(postgres_conn_id="post")
         conn = pg_hook.get_conn()
         cur = conn.cursor()
         cur.execute("SELECT version();")
