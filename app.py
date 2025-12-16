@@ -1,8 +1,13 @@
 import os
 import streamlit as st
 
-# --- IMPORTANT: set env BEFORE importing airflow ---
-# os.environ.setdefault("AIRFLOW_HOME", "/opt/airflow")
+# --- MUST be set BEFORE importing airflow ---
+os.environ.setdefault(
+    "AIRFLOW__SECRETS__BACKEND",
+    "airflow_utils.import_variable_connection.AirflowConnectionsAndVariableImport"
+)
+os.environ.setdefault("AIRFLOW__SECRETS__BACKEND_KWARGS", "{}")
+os.environ.setdefault("AIRFLOW_HOME", "/opt/airflow")
 
 from airflow.providers.http.hooks.http import HttpHook
 
