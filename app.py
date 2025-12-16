@@ -1,42 +1,27 @@
+import os
 import streamlit as st
-from sqlalchemy import text
-from dataflow.dataflow import Dataflow
 
-# --- Initialize Dataflow SDK ---
-dataflow = Dataflow()
-db = dataflow.connection("dataflow")  # Replace with your real connection ID
+# --- IMPORTANT: set env BEFORE importing airflow ---
+# os.environ.setdefault("AIRFLOW_HOME", "/opt/airflow")
 
-st.title("📊 Dummy Postgres Table Creator")
+from airflow.providers.http.hooks.http import HttpHook
 
-if st.button("Create Table"):
+
+st.title("Dog API via Airflow HttpHook 🐶")
+
+if st.button("Fetch Random Dog Image"):
     try:
-        # Example: Create a dummy table
-        create_sql = text("""
-        CREATE TABLE IF NOT EXISTS dummy_users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100),
-            age INT
-        );
-        """)
-        db.execute(create_sql)
+        hook = HttpHook(http_conn_id="http", method="GET")
+        response = hook.run("/api/breeds/image/random")
 
-        # Insert sample data
-        insert_sql = text("""
-        INSERT INTO dummy_users (name, age)
-        VALUES ('Alice', 25), ('Bob', 30), ('Charlie', 22)
-        ON CONFLICT DO NOTHING;
-        """)
-        db.execute(insert_sql)
-
-        st.success("✅ Table created and sample data inserted!")
+        if response.status_code == 200:
+            data = response.json()
+            st.success("API call successful!")
+            st.image(data["message"], caption="Random Dog 🐕")
+        else:
+            st.error(f"Failed with status {response.status_code}")
+            st.text(response.text)
 
     except Exception as e:
-        st.error(f"❌ Error: {e}")
-
-if st.button("Show Data"):
-    try:
-        result = db.execute(text("SELECT * FROM dummy_users;"))
-        rows = result.fetchall()
-        st.write(rows)
-    except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error("Error calling API")
+        st.exception(e)
