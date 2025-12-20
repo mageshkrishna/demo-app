@@ -1,54 +1,118 @@
-import os
 import streamlit as st
 
-# Secrets backend
-os.environ["AIRFLOW__SECRETS__BACKEND"] = (
-    "airflow_utils.import_variable_connection.AirflowConnectionsAndVariableImport"
-)
+st.set_page_config(page_title="Airflow Hooks Demo", layout="wide")
 
+st.title("🪁 Airflow Hooks Demo (Streamlit)")
+st.write("Run all Airflow hooks using a single button")
 
-# --------------------------------------------------
-# Now it is SAFE to import Airflow hooks
-# --------------------------------------------------
-from airflow.providers.http.hooks.http import HttpHook
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+# ============================
+# ONE BUTTON
+# ============================
 
+if st.button("🚀 Run All Airflow Hooks"):
 
-st.title("Airflow Hooks in Streamlit 🚀")
+    # ============================
+    # S3 Hook
+    # ============================
+    st.subheader("📦 S3 Buckets")
 
-# -----------------------
-# HTTP example
-# -----------------------
-if st.button("Fetch Random Dog Image"):
     try:
+        from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+        hook = S3Hook(aws_conn_id="aws_conn")
+        client = hook.get_conn()
+        response = client.list_buckets()
+
+        buckets = [b["Name"] for b in response["Buckets"]]
+        st.success("Buckets retrieved")
+        st.write(buckets)
+
+    except Exception as e:
+        st.error(f"S3 failed: {e}")
+
+    # ============================
+    # IMAP Hook
+    # ============================
+    st.subheader("📧 Latest Email")
+
+    try:
+        from airflow.providers.imap.hooks.imap import ImapHook
+
+        with ImapHook(imap_conn_id="imap_conn") as hook:
+            hook.mail_client.select("INBOX")
+
+            latest_id = list(hook._list_mail_ids_desc("ALL"))[0]
+            raw = hook._fetch_mail_body(latest_id)
+
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8", errors="ignore")
+
+            lines = [
+                line for line in raw.splitlines()
+                if line.startswith("Subject:") or line.startswith("Delivered-To:")
+            ]
+
+            for line in lines:
+                st.text(line)
+
+    except Exception as e:
+        st.error(f"IMAP failed: {e}")
+
+    # ============================
+    # SMTP Hook
+    # ============================
+    st.subheader("📨 SMTP Email")
+
+    try:
+        from airflow.providers.smtp.hooks.smtp import SmtpHook
+
+        hook = SmtpHook(smtp_conn_id="smtp_conn")
+        hook.get_conn()
+
+        hook.send_email_smtp(
+            to="receiver@example.com",
+            subject="SMTP Hook Test (Streamlit)",
+            html_content="<b>Hello from Streamlit + Airflow!</b>",
+        )
+
+        st.success("Email sent ✔️")
+
+    except Exception as e:
+        st.error(f"SMTP failed: {e}")
+
+    # ============================
+    # HTTP Hook
+    # ============================
+    st.subheader("🌐 HTTP API")
+
+    try:
+        from airflow.providers.http.hooks.http import HttpHook
+
         hook = HttpHook(http_conn_id="http", method="GET")
         response = hook.run("/api/breeds/image/random")
 
-        if response.status_code == 200:
-            data = response.json()
-            st.image(data["message"], caption="Random Dog 🐶")
-        else:
-            st.error(response.text)
+        st.write("Status Code:", response.status_code)
+        st.json(response.json())
+
     except Exception as e:
-        st.exception(e)
+        st.error(f"HTTP failed: {e}")
 
-st.divider()
+    # ============================
+    # Postgres Hook
+    # ============================
+    st.subheader("🐘 Postgres Version")
 
-# -----------------------
-# Postgres example
-# -----------------------
-if st.button("Check Postgres Version"):
     try:
-        pg_hook = PostgresHook(postgres_conn_id="post")
-        conn = pg_hook.get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT version();")
-        version = cur.fetchone()[0]
+        from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-        st.success("Connected to Postgres ✅")
-        st.code(version)
+        hook = PostgresHook(postgres_conn_id="post")
+        conn = hook.get_conn()
+        cursor = conn.cursor()
 
-        cur.close()
-        conn.close()
+        cursor.execute("SELECT version();")
+        version = cursor.fetchone()
+
+        st.write(version[0])
+
     except Exception as e:
-        st.exception(e)
+        st.error(f"Postgres failed: {e}")
