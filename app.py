@@ -1,43 +1,30 @@
-import os
-import pandas as pd
 import streamlit as st
+import time
+import random
 
+# Page config
 st.set_page_config(
-    page_title="Environment Variables Viewer",
-    layout="wide"
+    page_title="Dummy Streamlit App",
+    page_icon="🚀",
+    layout="centered"
 )
 
-st.title("🔐 Environment Variables Viewer")
+# Title
+st.title("🚀 Dummy Streamlit App")
+st.caption("For testing deployments, Kubernetes, ingress, etc.")
 
-# --- Options ---
-mask_sensitive = st.checkbox("Mask sensitive values (recommended)", value=True)
-search = st.text_input("🔍 Search (key or value)", placeholder="PATH, HOME, TOKEN...")
+# Sidebar
+st.sidebar.header("Controls")
+name = st.sidebar.text_input("Enter your name", "Magesh")
+refresh = st.sidebar.button("Refresh Data")
 
-# --- Load environment variables ---
-env_data = []
-for key, value in os.environ.items():
-    display_value = value
-    if mask_sensitive and any(s in key.lower() for s in ["key", "token", "secret", "password"]):
-        display_value = "********"
-    env_data.append({
-        "Key": key,
-        "Value": display_value
-    })
+# Main content
+st.subheader("Hello 👋")
+st.write(f"Welcome **{name}**!")
 
-df = pd.DataFrame(env_data)
+# Dummy metric
+st.subheader("Live Metrics")
+col1, col2, col3 = st.columns(3)
 
-# --- Search filter ---
-if search:
-    search_lower = search.lower()
-    df = df[
-        df["Key"].str.lower().str.contains(search_lower)
-        | df["Value"].str.lower().str.contains(search_lower)
-    ]
-
-# --- Display ---
-st.write(f"Showing **{len(df)}** environment variables")
-st.dataframe(
-    df,
-    use_container_width=True,
-    hide_index=True
-)
+with col1:
+    st.metric("CPU Usage", f"{rand
