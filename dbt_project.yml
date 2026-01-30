@@ -1,5 +1,13 @@
 name: "dbt_mini"
 version: "1.0"
+
 profile: "dbt_mini"
 
 model-paths: []
+analysis-paths: []
+seed-paths: []
+macro-paths: []
+snapshot-paths: []
+
+target-path: "target"
+clean-targets: ["target"]
