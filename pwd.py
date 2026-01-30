@@ -11,5 +11,5 @@ with DAG(
 
     dbt_debug = BashOperator(
         task_id="dbt_debug",
-        bash_command="dbt debug --project-dir /opt/airflow/"
+        bash_command="dbt debug --project-dir /opt/airflow/shared/"
     )
