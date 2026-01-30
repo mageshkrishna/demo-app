@@ -3,17 +3,23 @@ from airflow.operators.bash import BashOperator
 from datetime import datetime
 
 with DAG(
-    dag_id="print_opt_airflow_shared_tree",
+    dag_id="dbt_debug_runtime_project",
     start_date=datetime(2026, 1, 1),
     schedule_interval=None,
     catchup=False,
 ) as dag:
 
-    print_shared = BashOperator(
-        task_id="print_shared_tree",
+    dbt_debug = BashOperator(
+        task_id="dbt_debug",
         bash_command="""
-        echo "===== FULL TREE OF /opt/airflow/shared ====="
-        find /opt/airflow/shared -print 2>/dev/null
-        echo "===== END TREE ====="
+        mkdir -p /tmp/dbt_project
+        cat << 'EOF' > /tmp/dbt_project/dbt_project.yml
+        name: "dbt_mini"
+        version: "1.0"
+        profile: "dbt_mini"
+        model-paths: []
+        EOF
+
+        dbt debug --project-dir /tmp/dbt_project
         """
-    )
+)
