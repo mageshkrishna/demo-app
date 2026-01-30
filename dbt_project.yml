@@ -1,0 +1,5 @@
+name: "dbt_mini"
+version: "1.0"
+profile: "dbt_mini"
+
+model-paths: []
