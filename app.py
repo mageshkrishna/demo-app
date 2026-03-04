@@ -1,54 +1,53 @@
 import streamlit as st
-import time
-import random
+from airflow.providers.mongo.hooks.mongo import MongoHook
+from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
-# Page config
-st.set_page_config(
-    page_title="Dummy Streamlit App",
-    page_icon="🚀",
-    layout="centered"
-)
+st.title("Airflow Connection Tester")
 
-# Title
-st.title("🚀 Dummy Streamlit App")
-st.caption("For testing deployments, Kubernetes, ingress, etc.")
+tab1, tab2 = st.tabs(["MongoDB Test", "Snowflake Test"])
 
-# Sidebar
-st.sidebar.header("Controls")
-name = st.sidebar.text_input("Enter your name", "Magesh")
-refresh = st.sidebar.button("Refresh Data")
 
-# Main content
-st.subheader("Hello 👋")
-st.write(f"Welcome **{name}**!")
+# ---------------- Mongo Test ----------------
+with tab1:
 
-# Dummy metric
-st.subheader("Live Metrics")
-col1, col2, col3 = st.columns(3)
+    st.header("MongoDB Connection")
 
-with col1:
-    st.metric("CPU Usage", f"{random.randint(10, 90)} %")
+    if st.button("Run Mongo Test"):
 
-with col2:
-    st.metric("Memory Usage", f"{random.randint(500, 8000)} MB")
+        try:
+            hook = MongoHook(mongo_conn_id="mongo")
+            client = hook.get_conn()
 
-with col3:
-    st.metric("Requests", random.randint(100, 10000))
+            db = client["grocery-store"]
+            collection = db["admins"]
 
-# Simulated loading
-if refresh:
-    with st.spinner("Refreshing data..."):
-        time.sleep(2)
-    st.success("Data refreshed!")
+            docs = list(collection.find().limit(10))
 
-# Dummy table
-st.subheader("Sample Data")
-st.table({
-    "Service": ["api", "worker", "frontend"],
-    "Status": ["Running", "Running", "Running"],
-    "Replicas": [2, 1, 3]
-})
+            st.success("Mongo Connection Successful")
+            st.write(docs)
 
-# Footer
-st.divider()
-st.caption("Dummy app • Streamlit • Kubernetes friendly")
+        except Exception as e:
+            st.error(f"Mongo Connection Failed: {e}")
+
+
+# ---------------- Snowflake Test ----------------
+with tab2:
+
+    st.header("Snowflake Connection")
+
+    if st.button("Run Snowflake Test"):
+
+        try:
+            hook = SnowflakeHook(snowflake_conn_id="snowflake")
+
+            conn = hook.get_conn()
+            cur = conn.cursor()
+
+            cur.execute("SELECT CURRENT_WAREHOUSE()")
+            result = cur.fetchone()
+
+            st.success("Snowflake Connection Successful")
+            st.write({"Current Warehouse": result[0]})
+
+        except Exception as e:
+            st.error(f"Snowflake Connection Failed: {e}")
