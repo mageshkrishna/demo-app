@@ -1,54 +1,49 @@
-import streamlit as st
-import time
-import random
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
 
-# Page config
-st.set_page_config(
-    page_title="Dummy Streamlit App",
-    page_icon="🚀",
-    layout="centered"
-)
+from airflow.providers.mongo.hooks.mongo import MongoHook
+from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
-# Title
-st.title("🚀 Dummy Streamlit App")
-st.caption("For testing deployments, Kubernetes, ingress, etc.")
 
-# Sidebar
-st.sidebar.header("Controls")
-name = st.sidebar.text_input("Enter your name", "Magesh")
-refresh = st.sidebar.button("Refresh Data")
+def test_mongo():
+    hook = MongoHook(mongo_conn_id="mongo")
+    client = hook.get_conn()
 
-# Main content
-st.subheader("Hello 👋")
-st.write(f"Welcome **{name}**!")
+    db = client["grocery-store"]
+    collection = db["admins"]
 
-# Dummy metric
-st.subheader("Live Metrics")
-col1, col2, col3 = st.columns(3)
+    docs = list(collection.find())
+    print("Mongo Documents:", docs)
 
-with col1:
-    st.metric("CPU Usage", f"{random.randint(10, 90)} %")
 
-with col2:
-    st.metric("Memory Usage", f"{random.randint(500, 8000)} MB")
+def test_snowflake():
+    hook = SnowflakeHook(snowflake_conn_id="snowflake")
 
-with col3:
-    st.metric("Requests", random.randint(100, 10000))
+    conn = hook.get_conn()
+    cur = conn.cursor()
 
-# Simulated loading
-if refresh:
-    with st.spinner("Refreshing data..."):
-        time.sleep(2)
-    st.success("Data refreshed!")
+    cur.execute("SELECT CURRENT_WAREHOUSE()")
+    result = cur.fetchone()
 
-# Dummy table
-st.subheader("Sample Data")
-st.table({
-    "Service": ["api", "worker", "frontend"],
-    "Status": ["Running", "Running", "Running"],
-    "Replicas": [2, 1, 3]
-})
+    print("Snowflake warehouse:", result)
 
-# Footer
-st.divider()
-st.caption("Dummy app • Streamlit • Kubernetes friendly")
+
+with DAG(
+    dag_id="connection_test_dag",
+    start_date=datetime(2024,1,1),
+    schedule=None,
+    catchup=False,
+) as dag:
+
+    mongo_test = PythonOperator(
+        task_id="test_mongo_connection",
+        python_callable=test_mongo
+    )
+
+    snowflake_test = PythonOperator(
+        task_id="test_snowflake_connection",
+        python_callable=test_snowflake
+    )
+
+    mongo_test >> snowflake_test
