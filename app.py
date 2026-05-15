@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 def list_tables():
-    hook = PostgresHook(postgres_conn_id="neon_postgres")
+    hook = PostgresHook(postgres_conn_id="test_streamlit")
 
     conn = hook.get_conn()
     cursor = conn.cursor()
