@@ -1,54 +1,72 @@
 import streamlit as st
-import time
-import random
+import pandas as pd
 
-# Page config
-st.set_page_config(
-    page_title="Dummy Streamlit App",
-    page_icon="🚀",
-    layout="centered"
-)
+from airflow.hooks.base import BaseHook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-# Title
-st.title("🚀 Dummy Streamlit App")
-st.caption("For testing deployments, Kubernetes, ingress, etc.")
 
-# Sidebar
-st.sidebar.header("Controls")
-name = st.sidebar.text_input("Enter your name", "Magesh")
-refresh = st.sidebar.button("Refresh Data")
+st.set_page_config(page_title="Neon PostgreSQL Viewer")
 
-# Main content
-st.subheader("Hello 👋")
-st.write(f"Welcome **{name}**!")
+st.title("Neon PostgreSQL Tables")
 
-# Dummy metric
-st.subheader("Live Metrics")
-col1, col2, col3 = st.columns(3)
+CONN_ID = "test_streamlit"
 
-with col1:
-    st.metric("CPU Usage", f"{random.randint(10, 90)} %")
 
-with col2:
-    st.metric("Memory Usage", f"{random.randint(500, 8000)} MB")
+def get_postgres_hook():
+    """
+    Load Airflow connection
+    """
+    hook = PostgresHook(postgres_conn_id=CONN_ID)
+    return hook
 
-with col3:
-    st.metric("Requests", random.randint(100, 10000))
 
-# Simulated loading
-if refresh:
-    with st.spinner("Refreshing data..."):
-        time.sleep(2)
-    st.success("Data refreshed!")
+def get_tables():
+    hook = get_postgres_hook()
 
-# Dummy table
-st.subheader("Sample Data")
-st.table({
-    "Service": ["api", "worker", "frontend"],
-    "Status": ["Running", "Running", "Running"],
-    "Replicas": [2, 1, 3]
-})
+    query = """
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema='public'
+    ORDER BY table_name;
+    """
 
-# Footer
-st.divider()
-st.caption("Dummy app • Streamlit • Kubernetes friendly")
+    df = hook.get_pandas_df(query)
+
+    return df
+
+
+def get_table_data(table_name):
+    hook = get_postgres_hook()
+
+    query = f"""
+    SELECT *
+    FROM {table_name}
+    LIMIT 100;
+    """
+
+    df = hook.get_pandas_df(query)
+
+    return df
+
+
+try:
+    tables_df = get_tables()
+
+    if tables_df.empty:
+        st.warning("No tables found")
+    else:
+        table_names = tables_df["table_name"].tolist()
+
+        selected_table = st.selectbox(
+            "Select Table",
+            table_names
+        )
+
+        st.subheader(f"Preview: {selected_table}")
+
+        data_df = get_table_data(selected_table)
+
+        st.dataframe(data_df)
+
+except Exception as e:
+    st.error(str(e))
